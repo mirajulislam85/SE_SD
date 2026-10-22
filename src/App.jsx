@@ -1,121 +1,91 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react'
+import Navbar from './components/Navbar'
+import Footer from './components/Footer'
+import Home from './pages/Home'
+import Products from './pages/Products'
+import ProductDetails from './pages/ProductDetails'
+import Cart from './pages/Cart'
+import Reviews from './pages/Reviews'
+import Contact from './pages/Contact'
+import About from './pages/About'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [page, setPage] = useState('home')
+  const [category, setCategory] = useState('All')
+  const [search, setSearch] = useState('')
+  const [selectedProduct, setSelectedProduct] = useState(null)
+  const [cart, setCart] = useState([])
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    fetch('https://fakestoreapi.com/products')
+      .then((response) => {
+        if (!response.ok) throw new Error('Products could not be loaded')
+        return response.json()
+      })
+      .then((data) => setProducts(data))
+      .catch(() => setError('Products could not be loaded. Please check your internet connection.'))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const navigate = (nextPage) => {
+    setPage(nextPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const showMessage = (text) => {
+    setMessage(text)
+    setTimeout(() => setMessage(''), 2200)
+  }
+
+  const addToCart = (product) => {
+    const item = cart.find((cartItem) => cartItem.id === product.id)
+    if (item) {
+      setCart(cart.map((cartItem) => cartItem.id === product.id
+        ? { ...cartItem, quantity: cartItem.quantity + 1 }
+        : cartItem))
+    } else {
+      setCart([...cart, { ...product, quantity: 1 }])
+    }
+    showMessage(`${product.title} added to cart`)
+  }
+
+  const changeQuantity = (id, amount) => {
+    setCart(cart
+      .map((item) => item.id === id ? { ...item, quantity: item.quantity + amount } : item)
+      .filter((item) => item.quantity > 0))
+  }
+
+  const openProduct = (product) => {
+    setSelectedProduct(product)
+    navigate('product')
+  }
+
+  const cartCount = cart.reduce((total, item) => total + item.quantity, 0)
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    <div className="min-h-screen bg-[#faf9ff] text-slate-900">
+      {message && <div className="fixed right-5 top-5 z-30 rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-xl">{message}</div>}
+      <Navbar
+        onNavigate={navigate}
+        search={search}
+        onSearch={(value) => { setSearch(value); navigate('products') }}
+        cartCount={cartCount}
+      />
+      <main>
+        {page === 'home' && <Home products={products} onNavigate={navigate} onCategory={(value) => { setCategory(value); navigate('products') }} onProduct={openProduct} onAdd={addToCart} />}
+        {page === 'products' && <Products products={products} loading={loading} error={error} category={category} search={search} onCategory={setCategory} onProduct={openProduct} onAdd={addToCart} />}
+        {page === 'product' && <ProductDetails product={selectedProduct} onBack={() => navigate('products')} onAdd={addToCart} />}
+        {page === 'cart' && <Cart cart={cart} onChangeQuantity={changeQuantity} onShop={() => navigate('products')} onCheckout={() => showMessage('Checkout will be connected in the backend phase')} />}
+        {page === 'reviews' && <Reviews />}
+        {page === 'contact' && <Contact onMessage={showMessage} />}
+        {page === 'about' && <About onShop={() => navigate('products')} />}
+      </main>
+      <Footer onNavigate={navigate} />
+    </div>
   )
 }
 
